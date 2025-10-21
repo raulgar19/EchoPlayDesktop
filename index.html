@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EchoPlay Desktop</title>
+    <!-- Usaremos Font Awesome para los iconos -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+    <!-- Enlace al archivo CSS externo -->
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="spotify-container">
+      <!-- SECCIÓN 1: BARRA LATERAL (Usuarios y Playlists) -->
+      <aside class="sidebar">
+        <div class="user-profile">
+          <h3>PERFIL</h3>
+          <!-- Componente de selección de usuario personalizado -->
+          <div class="custom-select-wrapper">
+            <div class="custom-select" id="user-select">
+              <div class="custom-select__trigger" id="user-select-trigger">
+                <img
+                  id="selected-user-image"
+                  src="https://placehold.co/32x32/282828/b3b3b3?text=?"
+                  alt="User"
+                />
+                <span id="selected-user-name">Seleccione un usuario</span>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <div class="custom-options" id="user-options">
+                <!-- Las opciones de usuario se generarán aquí -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="playlists">
+          <h3><i class="fa-solid fa-list-music"></i> MIS PLAYLISTS</h3>
+          <ul id="playlist-list">
+            <!-- Las playlists se cargarán desde la API -->
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- SECCIÓN 2: CONTENIDO PRINCIPAL (Canciones y Búsqueda) -->
+      <main class="main-content">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Buscar canciones, artistas..." />
+        </div>
+
+        <div class="song-list">
+          <h2 id="playlist-title">Selecciona una playlist</h2>
+          <table class="song-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Artista</th>
+              </tr>
+            </thead>
+            <tbody id="song-list-body">
+              <!-- Las canciones se cargarán desde la API -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+
+      <!-- SECCIÓN 3: REPRODUCTOR INFERIOR -->
+      <footer class="player">
+        <div class="current-song">
+          <div class="album-art" id="player-album-art">🎵</div>
+          <div class="song-info">
+            <div class="title" id="player-title">Selecciona una canción</div>
+            <div class="artist" id="player-artist"></div>
+          </div>
+        </div>
+
+        <div class="player-controls">
+          <div class="control-buttons">
+            <button id="shuffle-btn"><i class="fas fa-shuffle"></i></button>
+            <button id="prev-btn"><i class="fas fa-step-backward"></i></button>
+            <button id="play-pause-btn" class="play-pause-btn">
+              <i class="fas fa-play"></i>
+            </button>
+            <button id="next-btn"><i class="fas fa-step-forward"></i></button>
+            <button id="loop-btn"><i class="fas fa-repeat"></i></button>
+          </div>
+          <div class="progress-bar-container">
+            <span class="time-label" id="current-time">0:00</span>
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress" id="progress"></div>
+            </div>
+            <span class="time-label" id="duration">0:00</span>
+          </div>
+        </div>
+
+        <div class="extra-controls">
+          <!-- Controles de volumen eliminados -->
+        </div>
+      </footer>
+    </div>
+
+    <input type="file" id="file-input" accept="audio/*" style="display: none" />
+    <audio id="audio-player"></audio>
+
+    <!-- Enlace al archivo JS externo -->
+    <script src="render.js" defer></script>
+  </body>
+</html>
