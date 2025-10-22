@@ -822,6 +822,20 @@ html {
   transform: scale(1.05);
 }
 
+/* API Error modal tweaks (reuse confirm styles) */
+#api-error-message {
+  color: var(--text-color);
+}
+
+#api-error-retry {
+  background-color: #8f12ff;
+  color: #fff;
+}
+
+#api-error-retry:hover {
+  background-color: #a24cff;
+}
+
 /* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;

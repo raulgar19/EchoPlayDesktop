@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE_URL =
-    "https://creek-offerings-pricing-fred.trycloudflare.com/";
+  const API_BASE_URL = "https://creek-offerings-pricing-fred.trycloudflare.com";
 
   // --- Referencias a elementos del DOM ---
   const userSelectWrapper = document.getElementById("user-select");
@@ -29,6 +28,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const playlistNameInput = document.getElementById("playlist-name-input");
   const newPlaylistCreate = document.getElementById("new-playlist-create");
   const newPlaylistCancel = document.getElementById("new-playlist-cancel");
+  const apiErrorModal = document.getElementById("api-error-modal");
+  const apiErrorMessage = document.getElementById("api-error-message");
+  const apiErrorRetry = document.getElementById("api-error-retry");
+  const apiErrorClose = document.getElementById("api-error-close");
 
   // --- Referencias a elementos del reproductor ---
   const audioPlayer = document.getElementById("audio-player");
@@ -73,11 +76,58 @@ document.addEventListener("DOMContentLoaded", () => {
       return await response.json();
     } catch (error) {
       console.error(`No se pudo obtener ${endpoint}:`, error);
-      alert(
-        `Error conectando con la API. Asegúrate de que el servidor esté en http://localhost:3000.`
-      );
+      // Mostrar modal de error y permitir reintento
+      const message = `Error conectando con la API al solicitar ${endpoint}. Revisa tu conexión o intenta reintentar.`;
+      const retry = await showApiErrorModal(message);
+      if (retry) {
+        // Reintentar la petición una vez
+        try {
+          const retryResp = await fetch(`${API_BASE_URL}${endpoint}`);
+          if (!retryResp.ok)
+            throw new Error(`Error en la API: ${retryResp.statusText}`);
+          return await retryResp.json();
+        } catch (err) {
+          console.error("Reintento fallido:", err);
+          return [];
+        }
+      }
       return [];
     }
+  }
+
+  function showApiErrorModal(message) {
+    return new Promise((resolve) => {
+      apiErrorMessage.textContent = message;
+      apiErrorModal.classList.add("show");
+
+      const cleanup = () => {
+        apiErrorModal.classList.remove("show");
+        apiErrorRetry.removeEventListener("click", onRetry);
+        apiErrorClose.removeEventListener("click", onClose);
+        apiErrorModal.removeEventListener("click", onOutside);
+      };
+
+      const onRetry = () => {
+        cleanup();
+        resolve(true);
+      };
+
+      const onClose = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      const onOutside = (e) => {
+        if (e.target === apiErrorModal) {
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      apiErrorRetry.addEventListener("click", onRetry);
+      apiErrorClose.addEventListener("click", onClose);
+      apiErrorModal.addEventListener("click", onOutside);
+    });
   }
 
   // --- Funciones del reproductor ---
