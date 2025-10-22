@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE_URL = "http://localhost:3000";
+  const API_BASE_URL =
+    "https://creek-offerings-pricing-fred.trycloudflare.com/";
 
   // --- Referencias a elementos del DOM ---
   const userSelectWrapper = document.getElementById("user-select");
