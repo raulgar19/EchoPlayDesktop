@@ -1,17 +1,21 @@
 // main.js
 
 // Importa los módulos necesarios de Electron
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, Menu } = require("electron");
 const path = require("path");
 
 // Función para crear la ventana principal de la aplicación
 const createWindow = () => {
+  // Ocultar el menú de la aplicación
+  Menu.setApplicationMenu(null);
+
   // Crea la ventana del navegador con las dimensiones deseadas.
   const win = new BrowserWindow({
     width: 1400, // Ancho de la ventana en píxeles (más ancho para ser rectangular)
     height: 800, // Alto de la ventana en píxeles
     minWidth: 1400, // Ancho mínimo permitido
     minHeight: 800, // Alto mínimo permitido
+    icon: path.join(__dirname, "icon.png"), // Ruta al icono de la aplicación
     webPreferences: {
       // __dirname apunta al directorio actual.
       // path.join une las rutas de forma segura para cualquier sistema operativo.
