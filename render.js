@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE_URL = "http://localhost:3000";
-  const DRIVE_PROXY_URL = "http://192.168.1.39:3000"; // URL del servidor para archivos de Google Drive
+  const API_BASE_URL = "https://echoplaybackend.onrender.com";
+  const DRIVE_PROXY_URL = "https://echoplaybackend.onrender.com"; // URL del servidor para archivos de Google Drive
 
   // Configuración: usar servidor como proxy para archivos de Google Drive
   const USE_SERVER_PROXY_AUDIO = true; // Usar proxy para audio (requiere OAuth en servidor)
