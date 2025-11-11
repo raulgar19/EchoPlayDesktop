@@ -50,7 +50,7 @@ const createWindow = () => {
   });
 
   // Opcional: Abre las herramientas de desarrollo (como en Chrome) para depurar
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools(); // Comentado para evitar que se abra la consola
 };
 
 // Este método se llama cuando Electron ha terminado la inicialización
