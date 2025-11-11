@@ -1,5 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE_URL = "https://creek-offerings-pricing-fred.trycloudflare.com";
+  const API_BASE_URL = "http://localhost:3000";
+  const DRIVE_PROXY_URL = "http://192.168.1.39:3000"; // URL del servidor para archivos de Google Drive
+
+  // Configuración: usar servidor como proxy para archivos de Google Drive
+  const USE_SERVER_PROXY_AUDIO = true; // Usar proxy para audio (requiere OAuth en servidor)
+  const USE_SERVER_PROXY_IMAGE = false; // Usar acceso directo para imágenes (thumbnail público)
 
   // --- Referencias a elementos del DOM ---
   const userSelectWrapper = document.getElementById("user-select");
@@ -64,6 +69,70 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentSong = null; // Canción actualmente reproduciéndose
   let allPlaylists = []; // Todas las playlists del usuario actual
   let currentUserId = null; // ID del usuario actual
+
+  // --- Funciones auxiliares para Google Drive ---
+
+  function extractFileIdFromGDriveUrl(url) {
+    if (!url) return null;
+
+    // Si ya es solo el ID, devolverlo
+    if (!url.includes("/") && !url.includes("?")) {
+      return url;
+    }
+
+    // Extraer de URL tipo: https://drive.google.com/uc?export=view&id=FILE_ID
+    const match1 = url.match(/[?&]id=([^&]+)/);
+    if (match1) return match1[1];
+
+    // Extraer de URL tipo: https://drive.google.com/file/d/FILE_ID/view
+    const match2 = url.match(/\/d\/([^/]+)/);
+    if (match2) return match2[1];
+
+    return null;
+  }
+
+  function convertGoogleDriveUrl(url) {
+    if (!url) return url;
+
+    const fileId = extractFileIdFromGDriveUrl(url);
+
+    if (fileId) {
+      // Si usamos el servidor como proxy para audio
+      if (USE_SERVER_PROXY_AUDIO) {
+        return `${DRIVE_PROXY_URL}/drive/audio/${fileId}`;
+      }
+
+      // Si no, usar acceso directo a Google Drive
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    }
+
+    // Si no es una URL de Google Drive, devolver la URL original
+    return url;
+  }
+
+  function convertGoogleDriveImageUrl(url) {
+    if (!url) return url;
+
+    console.log("Imagen URL original:", url);
+    const fileId = extractFileIdFromGDriveUrl(url);
+    console.log("Imagen fileId extraído:", fileId);
+
+    if (fileId) {
+      // Si usamos el servidor como proxy para imágenes
+      if (USE_SERVER_PROXY_IMAGE) {
+        const finalUrl = `${DRIVE_PROXY_URL}/drive/image/${fileId}`;
+        console.log("Imagen URL final (proxy):", finalUrl);
+        return finalUrl;
+      }
+
+      // Si no, usar thumbnail directo (funcionaba antes)
+      const finalUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+      console.log("Imagen URL final (thumbnail):", finalUrl);
+      return finalUrl;
+    }
+
+    return url;
+  }
 
   // --- Funciones para obtener datos de la API ---
 
@@ -132,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Funciones del reproductor ---
 
-  function playSong(song, index, playlist) {
+  async function playSong(song, index, playlist) {
     currentSongIndex = index;
     currentPlaylist = playlist;
     currentSong = song; // Guardar la canción actual
@@ -144,19 +213,55 @@ document.addEventListener("DOMContentLoaded", () => {
     // Habilitar el botón de añadir a playlist
     addToPlaylistBtn.disabled = false;
 
-    // Actualizar la imagen del álbum
+    // Actualizar la imagen del álbum (convertir URL de Google Drive)
     if (song.cover) {
-      playerAlbumArt.innerHTML = `<img src="${song.cover}" alt="${song.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+      const coverUrl = convertGoogleDriveImageUrl(song.cover);
+      playerAlbumArt.innerHTML = `<img src="${coverUrl}" alt="${song.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" onerror="this.textContent='🎵'">`;
     } else {
       playerAlbumArt.textContent = "🎵";
     }
 
-    // Si la canción tiene una URL de audio, cargarla
+    // Si la canción tiene una URL de audio, cargarla (convertir URL de Google Drive)
     if (song.file) {
-      audioPlayer.src = song.file;
-      audioPlayer.play();
-      isPlaying = true;
-      updatePlayPauseButton();
+      console.log("URL original del archivo:", song.file);
+      const audioUrl = convertGoogleDriveUrl(song.file);
+      console.log("URL convertida:", audioUrl);
+
+      // Limpiar el src anterior
+      audioPlayer.src = "";
+
+      // Establecer la nueva URL
+      audioPlayer.src = audioUrl;
+      audioPlayer.load(); // Forzar la carga del nuevo audio
+
+      try {
+        // Intentar reproducir
+        await audioPlayer.play();
+        console.log("Reproducción iniciada correctamente");
+        isPlaying = true;
+        updatePlayPauseButton();
+      } catch (error) {
+        console.error("Error al reproducir:", error);
+
+        // Mensaje más detallado según el tipo de error
+        let errorMsg = `No se pudo reproducir "${song.name}".\n\n`;
+
+        if (error.message.includes("403") || error.name === "NotAllowedError") {
+          errorMsg +=
+            "El archivo puede no estar compartido públicamente en Google Drive.\n\n";
+          errorMsg += "Pasos para solucionar:\n";
+          errorMsg += "1. Abre el archivo en Google Drive\n";
+          errorMsg += "2. Click derecho > Compartir\n";
+          errorMsg += "3. Cambiar a 'Cualquier persona con el enlace'\n";
+          errorMsg += "4. Asegúrate de que tenga permisos de 'Lector'";
+        } else {
+          errorMsg += `Error: ${error.message}`;
+        }
+
+        alert(errorMsg);
+        isPlaying = false;
+        updatePlayPauseButton();
+      }
     } else {
       alert("Esta canción no tiene una fuente de audio disponible.");
     }
@@ -344,14 +449,17 @@ document.addEventListener("DOMContentLoaded", () => {
       option.classList.add("custom-option");
       option.dataset.value = user.id;
 
+      // Convertir URL de Google Drive para la imagen del usuario
+      const userImageUrl = convertGoogleDriveImageUrl(user.image);
+
       option.innerHTML = `
-                <img src="${user.image}" alt="${user.name}" onerror="this.src='https://placehold.co/32x32/282828/b3b3b3?text=Err'"/>
+                <img src="${userImageUrl}" alt="${user.name}" onerror="this.src='https://placehold.co/32x32/282828/b3b3b3?text=Err'"/>
                 <span>${user.name}</span>
             `;
 
       option.addEventListener("click", () => {
         selectedUserName.textContent = user.name;
-        selectedUserImage.src = user.image;
+        selectedUserImage.src = userImageUrl;
         userSelectWrapper.classList.remove("open");
         loadPlaylistsForUser(user.id);
       });
@@ -419,14 +527,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const row = document.createElement("tr");
         row.classList.add("song-row");
 
+        // Convertir URL de Google Drive para la imagen de la carátula
+        const coverUrl = convertGoogleDriveImageUrl(song.cover);
+
         // Adaptamos la celda del título para incluir la carátula (cover)
         row.innerHTML = `
                     <td>${index + 1}</td>
                     <td class="song-title">
                        <div style="display: flex; align-items: center;">
-                            <img src="${song.cover}" alt="${
-          song.name
-        }" style="width: 40px; height: 40px; margin-right: 15px; border-radius: 4px;" onerror="this.style.display='none'">
+                            <img src="${coverUrl}" alt="${
+                              song.name
+                            }" style="width: 40px; height: 40px; margin-right: 15px; border-radius: 4px; object-fit: cover; background: #282828;" onerror="this.style.display='none'">
                             <span>${song.name}</span>
                         </div>
                     </td>
@@ -516,8 +627,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const item = document.createElement("div");
         item.classList.add("search-result-item");
 
+        // Convertir URL de Google Drive para la imagen
+        const coverUrl = convertGoogleDriveImageUrl(song.cover);
+
         item.innerHTML = `
-          <img src="${song.cover}" alt="${song.name}" onerror="this.src='https://placehold.co/48x48/282828/b3b3b3?text=♪'">
+          <img src="${coverUrl}" alt="${song.name}" onerror="this.src='https://placehold.co/48x48/282828/b3b3b3?text=♪'">
           <div class="search-result-info">
             <div class="song-name">${song.name}</div>
             <div class="artist-name">${song.artist}</div>
@@ -942,6 +1056,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Manejar errores de carga del audio
+  audioPlayer.addEventListener("error", (e) => {
+    console.error("Error en el elemento de audio:", e);
+    console.error("Código de error:", audioPlayer.error?.code);
+    console.error("Mensaje de error:", audioPlayer.error?.message);
+
+    const errorMessages = {
+      1: "MEDIA_ERR_ABORTED - Descarga abortada por el usuario",
+      2: "MEDIA_ERR_NETWORK - Error de red durante la descarga",
+      3: "MEDIA_ERR_DECODE - Error al decodificar el archivo de audio",
+      4: "MEDIA_ERR_SRC_NOT_SUPPORTED - Formato de audio no soportado o archivo no encontrado",
+    };
+
+    const errorCode = audioPlayer.error?.code || 0;
+    console.error(
+      "Descripción:",
+      errorMessages[errorCode] || "Error desconocido"
+    );
+  });
+
   progressBar.addEventListener("click", setProgress);
 
   // --- Inicialización ---
@@ -959,7 +1093,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const firstUser = users[0];
       selectedUserName.textContent = firstUser.name;
-      selectedUserImage.src = firstUser.image;
+      selectedUserImage.src = convertGoogleDriveImageUrl(firstUser.image);
       loadPlaylistsForUser(firstUser.id);
     } else {
       console.log("No se encontraron usuarios.");
