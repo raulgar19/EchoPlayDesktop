@@ -242,28 +242,12 @@ document.addEventListener("DOMContentLoaded", () => {
         updatePlayPauseButton();
       } catch (error) {
         console.error("Error al reproducir:", error);
-
-        // Mensaje más detallado según el tipo de error
-        let errorMsg = `No se pudo reproducir "${song.name}".\n\n`;
-
-        if (error.message.includes("403") || error.name === "NotAllowedError") {
-          errorMsg +=
-            "El archivo puede no estar compartido públicamente en Google Drive.\n\n";
-          errorMsg += "Pasos para solucionar:\n";
-          errorMsg += "1. Abre el archivo en Google Drive\n";
-          errorMsg += "2. Click derecho > Compartir\n";
-          errorMsg += "3. Cambiar a 'Cualquier persona con el enlace'\n";
-          errorMsg += "4. Asegúrate de que tenga permisos de 'Lector'";
-        } else {
-          errorMsg += `Error: ${error.message}`;
-        }
-
-        alert(errorMsg);
         isPlaying = false;
         updatePlayPauseButton();
+        // No mostrar alertas ni ventanas de error
       }
     } else {
-      alert("Esta canción no tiene una fuente de audio disponible.");
+      // No mostrar alertas ni ventanas de error si no hay fuente de audio
     }
   }
 
